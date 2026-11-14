@@ -61,18 +61,10 @@ if(store.set.tc===undefined)store.set.tc=0;if(!store.set.board)store.set.board='
 document.documentElement.setAttribute('data-board',store.set.board);
 function save(){try{if(Gm&&Gm.mode!=='net'&&!busy)store.game=Gm;localStorage.setItem('hodkonem1',JSON.stringify(store))}catch(e){}}
 
-var SMP=null,smpDone=false,ROOM=null,roomDone=false;
-function aiReady(){smpDone=true;$('bWhy').hidden=!SMP;if(!SMP){$('send').disabled=true;$('qe').textContent='Чат с тренером Claude недоступен в этом просмотре. Оценки ходов, подсказки, задачи и уроки работают без него.'}}
+var ROOM=null,roomDone=false;
 try{if(window.claude&&window.claude.use){
-  window.claude.use('sample').then(function(s){SMP=s||null;aiReady()},function(){aiReady()});
   window.claude.use('room').then(function(r){ROOM=r||null;roomDone=true},function(){roomDone=true})}
-  else{aiReady();roomDone=true}}catch(e){aiReady();roomDone=true}
-var SYS='Ты шахматный тренер на сайте «Ход конём». Твой ученик новичок. Отвечай по-русски, дружелюбно и коротко: не больше 110 слов, обычным текстом без markdown и без списков. Фигуры называй словами, ходы записывай русской нотацией (Кf3, Сc4, O-O). Опирайся на данные движка ниже и не называй ходы, которых нет в позиции.';
-function ask(input,out,done){
-  if(!SMP){out.textContent='Тренер Claude недоступен в этом просмотре.';return}
-  out.textContent='Тренер думает…';
-  SMP(input,{cache:false,onText:function(e){if(e&&e.text)out.textContent=e.text}}).then(function(r){out.textContent=r.text||'Ответ пустой. Спросите ещё раз.';if(done)done(r.text)},
-    function(e){var c=e&&e.code;out.textContent=c==='rate_limited'?'Слишком много вопросов подряд. Подождите минуту и спросите снова.':c==='not_granted'?'Доступ к тренеру не разрешён, поэтому ответа нет.':(e&&e.text)?e.text:'Ответ не пришёл. Попробуйте ещё раз.';if(done)done('')})}
+  else roomDone=true}catch(e){roomDone=true}
 
 var BOT=[{r:400,d:1,z:260,rnd:0.25},{r:700,d:1,z:110,rnd:0.08},{r:1000,d:2,z:60},{r:1300,d:3,z:25},{r:1600,d:4,ms:500},{r:1900,d:9,ms:1000}];
 if(!(store.set.lv>=0&&store.set.lv<BOT.length))store.set.lv=2;
@@ -176,10 +168,8 @@ function renderPlay(){if(Gm.over&&!busy)settle();
   var dm=Math.round((mine.v-his.v)/100);$('diff').textContent=dm>0?'+'+dm:dm<0?''+dm:'';
   evalUI();
   $('lab').textContent=Gm.lab;$('lab').className='lab '+Gm.labc;$('co').textContent=Gm.co;
-  $('ai').hidden=!Gm.ai;$('ai').textContent=Gm.ai;
   $('bHint').hidden=md==='net';$('bHint').disabled=!my;
   $('bUndo').disabled=busy||!H.length||!!Gm.over||md!=='bot';$('bRes').disabled=busy||!!Gm.over||!Gm.MV.length;
-  $('bWhy').hidden=!SMP||md!=='bot'||!Gm.MV.length;
   var h='',i,rt={};Gm.RT.forEach(function(r){rt[r.i]=r});
   function cl(i){return rt[i]?rt[i].c:''}function tx(i){return (Gm.MV[i]||'')+(rt[i]&&rt[i].s?' '+rt[i].s:'')}
   for(i=0;i<Gm.MV.length;i+=2)h+='<span class="no">'+(i/2+1)+'.</span><span class="'+cl(i)+'">'+tx(i)+'</span><span class="'+cl(i+1)+'">'+tx(i+1)+'</span>';
@@ -215,15 +205,6 @@ setInterval(function(){var now=Date.now(),dt=now-lastTick;lastTick=now;
   Gm.tm-=Math.min(dt,2000);
   if(Gm.tm<=0){Gm.tm=0;finish({t:'Время вышло. Победил бот',r:'l',wc:other(Gm.me)});Gm.lab='Партия окончена';Gm.labc='tip';Gm.co='Время закончилось. Попробуйте контроль подлиннее или партию без часов.';sel=-1;promo=null;renderPlay();save()}
   else updClk()},500);
-function gameCtx(){var s='',i,S=Gm.S,lr=Gm.RT[Gm.RT.length-1],V=Gm.mode==='two'?'w':(Gm.me||'w');
-  for(i=0;i<Gm.MV.length;i++)s+=(i%2?'':(i/2+1)+'. ')+Gm.MV[i]+' ';
-  var u=(Gm.evw||0)*(V==='w'?1:-1),t='Данные партии. '+(Gm.mode==='bot'?'Ученик играет '+(Gm.me==='w'?'белыми':'чёрными')+' против бота с рейтингом '+BOT[Gm.lv].r+'.':'Ученик играет с другим человеком.')+' Запись ходов: '+(s||'ходов ещё нет')+'. Позиция FEN: '+fen(S)+'. Оценка движка с точки зрения '+(Gm.mode==='two'?'белых':'ученика')+': '+(Math.abs(u)>50000?(u>0?'форсированный мат в его пользу':'форсированный мат против него'):(u/100).toFixed(1)+' пешки')+'.';
-  if(lr)t+=' Последний ход ученика: '+Gm.MV[lr.i]+', оценка движка: '+lr.l+(lr.b?', движок считал сильнее '+lr.b:'')+'.'+(Gm.MV[lr.i+1]?' Ответ соперника: '+Gm.MV[lr.i+1]+'.':'');
-  if(Gm.over)t+=' Партия закончена: '+Gm.over.t+'.';
-  else if(Gm.mode==='bot'&&S.t===Gm.me&&!busy){var m=bestNow();if(m)t+=' Сейчас ход ученика, лучший ход по движку: '+san(S,m)+'.'}
-  return t}
-$('bWhy').addEventListener('click',function(){if(busy)return;$('ai').hidden=false;
-  ask(SYS+'\n\n'+gameCtx()+'\n\nЗадание: объясни ученику его последний ход и ответ соперника, а потом подскажи план на ближайшие один-два хода.',$('ai'),function(t){if(t)Gm.ai=t})});
 function segInit(id,key,num,cb){var el=$(id);function upd(){[].forEach.call(el.children,function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-x')===String(store.set[key])))})}
   el.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var x=b.getAttribute('data-x');store.set[key]=num?+x:x;upd();if(cb)cb();save()});upd()}
 function modeUI(){var m=store.set.mode;$('optBot').hidden=m!=='bot';$('optTwo').hidden=m!=='two';$('optNet').hidden=m!=='net';$('rowNew').hidden=m==='net'}
@@ -380,20 +361,7 @@ $('hmPB').addEventListener('click',function(){pzLoad(daily());location.hash='#pu
 $('hmLB').addEventListener('click',function(){lsLoad(nextLesson());location.hash='#lessons'});
 $('hmOB').addEventListener('click',function(){opLoad(oi);location.hash='#lessons'});
 
-var chatLog=[];
-function addMsg(cls,t){var d=document.createElement('div');d.className='msg '+cls;d.textContent=t;$('chat').appendChild(d);return d}
-function sendQ(q){q=(q||'').trim();
-  if(!q){$('qe').textContent='Сначала напишите вопрос.';return}
-  if(!SMP){$('qe').textContent=smpDone?'Чат с тренером Claude недоступен в этом просмотре.':'Тренер ещё подключается. Попробуйте через пару секунд.';return}
-  $('qe').textContent='';$('q').value='';addMsg('u',q);var out=addMsg('a','');
-  var input=chatLog.slice(-6).concat([{role:'user',content:SYS+'\n\n'+gameCtx()+'\n\nВопрос ученика: '+q}]);
-  $('send').disabled=true;
-  ask(input,out,function(t){$('send').disabled=false;if(t){chatLog.push({role:'user',content:q});chatLog.push({role:'assistant',content:t})}})}
-$('send').addEventListener('click',function(){sendQ($('q').value)});
-$('q').addEventListener('input',function(){$('qe').textContent=''});
-$('sug').addEventListener('click',function(e){var b=e.target.closest('button');if(b)sendQ(b.textContent)});
-
-var VIEWS=['home','play','puzzles','lessons','coach'];
+var VIEWS=['home','play','puzzles','lessons'];
 function route(){var v=(location.hash||'').slice(1);if(VIEWS.indexOf(v)<0)v='home';if(v==='home')renderHome();
   VIEWS.forEach(function(x){$('v-'+x).hidden=x!==v});
   [].forEach.call(document.querySelectorAll('nav.tabs a'),function(a){if(a.getAttribute('data-v')===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')})}

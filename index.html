@@ -20,7 +20,6 @@
     <a href="#play" data-v="play"><span aria-hidden="true">&#9823;&#xFE0E;</span>Игра</a>
     <a href="#puzzles" data-v="puzzles"><span aria-hidden="true">&#9819;&#xFE0E;</span>Задачи</a>
     <a href="#lessons" data-v="lessons"><span aria-hidden="true">&#9820;&#xFE0E;</span>Учёба</a>
-    <a href="#coach" data-v="coach"><span aria-hidden="true">&#9821;&#xFE0E;</span>Тренер</a>
   </nav>
   <main>
     <section id="v-home" hidden>
@@ -65,10 +64,8 @@
             <div class="who"><span class="av" aria-hidden="true">&#9822;&#xFE0E;</span>Тренер</div>
             <div class="lab" id="lab"></div>
             <p id="co"></p>
-            <div class="ai" id="ai" hidden></div>
             <div class="row" style="margin-top:12px">
               <button class="btn" id="bHint">Подсказка</button>
-              <button class="btn pri" id="bWhy" hidden>Объяснить ход</button>
             </div>
           </div>
           <div class="card" id="sumCard" hidden>
@@ -154,23 +151,6 @@
       </div>
     </section>
 
-    <section id="v-coach" hidden>
-      <h1>Тренер</h1>
-      <p class="sub">Спросите о правилах, дебютах или о вашей текущей партии. Тренер видит позицию и запись ходов из раздела «Игра».</p>
-      <div class="card">
-        <div class="chat" id="chat"><div class="msg a">Здравствуйте. Я тренер Claude. Спросите что угодно о шахматах или о позиции на вашей доске.</div></div>
-        <div class="chips" id="sug" style="margin:12px 0 8px">
-          <button class="txt">Что мне делать в этой позиции?</button>
-          <button class="txt">Какой дебют выбрать новичку?</button>
-          <button class="txt">Объясни рокировку</button>
-          <button class="txt">Где я ошибся в партии?</button>
-        </div>
-        <label class="lbl" for="q">Ваш вопрос</label>
-        <textarea id="q" placeholder="Почему нельзя рано выводить ферзя?"></textarea>
-        <div class="err" id="qe"></div>
-        <div class="row"><button class="btn pri" id="send">Спросить тренера</button></div>
-      </div>
-    </section>
   </main>
 </div>
 <script src="js/engine.js"></script>
