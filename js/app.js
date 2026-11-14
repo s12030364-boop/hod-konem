@@ -57,7 +57,7 @@ function dragify(el,can,pick,drop,tap,oth){var d=null,tsq=-1,lastTouch=0;el.clas
 var store={stats:{w:0,l:0,d:0},solved:{},read:{},game:null,set:{lv:2,col:'w',tc:0,board:'sky',mode:'bot'},rating:800,arch:[],v2:1};
 try{var raw=JSON.parse(localStorage.getItem('hodkonem1'));if(raw){var old=!raw.v2,mp=[0,2,3];for(var k in raw)store[k]=raw[k];
   if(old){store.v2=1;store.set.lv=mp[store.set.lv]===undefined?2:mp[store.set.lv];(store.arch||[]).forEach(function(a){a.lv=mp[a.lv]||0});store.game=null}}}catch(e){}
-if(store.set.tc===undefined)store.set.tc=0;if(!store.set.board)store.set.board='sky';if(!store.set.mode||store.set.mode==='net')store.set.mode='bot';if(!store.rating)store.rating=800;if(!store.arch)store.arch=[];
+if(store.set.tc===undefined)store.set.tc=0;if(!store.set.board)store.set.board='sky';if(!store.set.mode)store.set.mode='bot';if(!store.rating)store.rating=800;if(!store.arch)store.arch=[];
 document.documentElement.setAttribute('data-board',store.set.board);
 function save(){try{if(Gm&&Gm.mode!=='net'&&!busy)store.game=Gm;localStorage.setItem('hodkonem1',JSON.stringify(store))}catch(e){}}
 
@@ -65,7 +65,7 @@ var BOT=[{r:400,d:1,z:260,rnd:0.25},{r:700,d:1,z:110,rnd:0.08},{r:1000,d:2,z:60}
 if(!(store.set.lv>=0&&store.set.lv<BOT.length))store.set.lv=2;
 var ACC={p:'пешку',n:'коня',b:'слона',r:'ладью',q:'ферзя'};
 var Gm=null,H=[],sel=-1,hint=null,busy=false,promo=null;
-var NR=null,netOff=[];
+var NR=null,netOff=[],ROOM=window.HKNet||null;
 function posKey(s){return fen(s).slice(0,-4)}
 function uci(m){return sqn(m.f)+sqn(m.t)+(m.p||'')}
 function other(c){return c==='w'?'b':'w'}
@@ -202,7 +202,7 @@ setInterval(function(){var now=Date.now(),dt=now-lastTick;lastTick=now;
   else updClk()},500);
 function segInit(id,key,num,cb){var el=$(id);function upd(){[].forEach.call(el.children,function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-x')===String(store.set[key])))})}
   el.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var x=b.getAttribute('data-x');store.set[key]=num?+x:x;upd();if(cb)cb();save()});upd()}
-function modeUI(){var m=store.set.mode;$('optBot').hidden=m!=='bot';$('optTwo').hidden=m!=='two';$('rowNew').hidden=m==='net'}
+function modeUI(){var m=store.set.mode;$('optBot').hidden=m!=='bot';$('optTwo').hidden=m!=='two';$('optNet').hidden=m!=='net';$('rowNew').hidden=m==='net'}
 segInit('segM','mode',0,modeUI);segInit('segL','lv',1);segInit('segC','col');segInit('segT','tc',1);
 segInit('segB','board',0,function(){document.documentElement.setAttribute('data-board',store.set.board)});
 $('bNew').addEventListener('click',function(){if(busy)return;netLeave();
@@ -211,6 +211,44 @@ $('bNew').addEventListener('click',function(){if(busy)return;netLeave();
   window.scrollTo(0,0)});
 
 function netLeave(){netOff.forEach(function(f){try{f()}catch(e){}});netOff=[];if(NR){try{NR.leave()}catch(e){}NR=null}}
+function netMsg(t,c){$('netSt').textContent=t;$('netSt').className='fb '+(c||'')}
+function netSync(peers){if(!Gm||Gm.mode!=='net'||!NR)return;var opp=null;
+  var gone=false;peers.forEach(function(p){if(p.sameTab||p.kind!=='viewer'||!p.presence)return;var c=p.presence.c;if(!((c==='w'||c==='b')&&(!Gm.me||c!==Gm.me)))return;
+    if(p.presence.r)gone=true;if(!opp||String(p.presence.m||'').length>String(opp.presence.m||'').length)opp=p});
+  var first=!!opp&&!Gm.seen;Gm.opp=!!opp;if(opp)Gm.seen=true;
+  if(first&&Gm.me&&!Gm.MV.length){Gm.co='Друг подключился. Вы играете '+(Gm.me==='w'?'белыми, ваш ход.':'чёрными.');netMsg('Соперник найден. Игра началась.','good')}
+  if(!Gm.me){if(!opp){renderPlay();return}
+    Gm.me=other(opp.presence.c);NR.presence({c:Gm.me,m:Gm.UCI.join(' ')}).catch(function(){});
+    Gm.co='Код игры: '+Gm.code+'. Вы играете '+(Gm.me==='w'?'белыми':'чёрными')+'.';netMsg('Соперник найден. Игра началась.','good')}
+  if(opp){var om=typeof opp.presence.m==='string'?opp.presence.m:'',mine=Gm.UCI.join(' ');
+    if(om.length>mine.length&&om.indexOf(mine)===0&&!Gm.over){var ex=om.slice(mine.length).trim().split(' '),i,m,ch=false;
+      for(i=0;i<ex.length&&!Gm.over;i++){m=legal(Gm.S).filter(function(x){return uci(x)===ex[i]})[0];if(!m)break;applyMove(m);ch=true}
+      if(ch){sel=-1;promo=null;hint=null;Gm.lab=Gm.MV[Gm.MV.length-1];Gm.labc='tip';Gm.co=Gm.over?'Партия окончена.':Gm.S.t===Gm.me?'Соперник сделал ход. Ваша очередь.':'Позиция загружена. Ход соперника.';NR.presence({m:Gm.UCI.join(' ')}).catch(function(){})}}
+    if(gone&&!Gm.over){finish({t:'Соперник сдался. Вы победили',wc:Gm.me});Gm.co='Партия окончена.'}}
+  renderPlay()}
+function netLink(code){return location.origin+location.pathname+'#join-'+code}
+function netGo(code,host){
+  if(!ROOM){netMsg('Онлайн-игра не загрузилась. Обновите страницу.','bad');return}
+  if(busy)return;netLeave();netMsg('Подключаюсь…','');$('netShareRow').hidden=true;
+  ROOM.join('hk-'+code).then(function(nr){NR=nr;newG('net',host?'w':null,0);Gm.code=code;Gm.opp=false;Gm.lab='Онлайн-игра';
+    Gm.co=host?'Код игры: '+code+'. Отправьте другу ссылку или код. Вы играете белыми.':'Вы вошли в игру '+code+'. Ждём соперника.';
+    if(host)nr.presence({c:'w',m:''});
+    netOff.push(nr.onPeers(function(ch){netSync(ch.peers)},function(){netMsg('Связь с игрой потеряна. Переподключаюсь…','bad')},function(){netMsg('Связь восстановлена.','good')}));
+    $('netShareRow').hidden=!host;
+    netMsg(host?'Игра создана. Код: '+code+'. Ждём друга.':'Вы в игре '+code+'. Ищем соперника…','good');renderPlay();window.scrollTo(0,0);
+    if(!host)setTimeout(function(){if(NR===nr&&Gm.mode==='net'&&!Gm.me)netMsg('В игре '+code+' пока никого нет. Проверьте код или подождите друга.','')},8000)},
+  function(){netMsg('Не получилось подключиться к серверу игры. Проверьте интернет и попробуйте ещё раз.','bad')})}
+$('netNew').addEventListener('click',function(){netGo(String(10000+Math.floor(Math.random()*90000)),true)});
+$('netJoin').addEventListener('click',function(){var c=$('netCode').value.trim();if(!/^\d{5}$/.test(c)){netMsg('Введите пять цифр кода.','bad');return}netGo(c,false)});
+$('netCode').addEventListener('input',function(){netMsg('','')});
+$('netShare').addEventListener('click',function(){if(!Gm||!Gm.code)return;var u=netLink(Gm.code),t='Сыграем в шахматы? Код игры: '+Gm.code;
+  if(navigator.share){navigator.share({title:'Ход конём',text:t,url:u}).catch(function(){})}
+  else if(navigator.clipboard){navigator.clipboard.writeText(t+' '+u).then(function(){netMsg('Ссылка скопирована. Отправьте её другу.','good')},function(){netMsg('Ссылка: '+u,'')})}
+  else netMsg('Ссылка: '+u,'')});
+function netFromHash(){var m=/^#join-(\d{5})$/.exec(location.hash||'');if(!m)return false;
+  store.set.mode='net';modeUI();[].forEach.call($('segM').children,function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-x')==='net'))});
+  history.replaceState(null,'',location.pathname+location.search+'#play');netGo(m[1],false);return true}
+window.addEventListener('pagehide',function(){netLeave()});
 var PZ1=["2r5/1R1nN2k/1n1N3b/3p2B1/3Pp3/1Pq2P1Q/4P1PP/3K1B1R w - -", "5rk1/5pp1/3R1p2/1p2n2p/1pp5/4PqPP/3K1P1R/r4B2 b - -", "r1b1r1k1/1p1p1p1n/4p2p/p3QN2/4P3/P4PP1/1PP3P1/R3KB1R w KQ -", "5rk1/5p2/2pbqQ1p/rp1p2pN/8/2P2P1b/6n1/1RR3K1 w - -", "1K4k1/8/8/8/3q4/8/2p5/4r1qq b - -", "2q1r3/r2n1k2/4p2R/pb2Q3/7P/P2P1N2/1P2BP2/1K4R1 w - -", "2r2rk1/pK3p2/3b4/p4P1p/1n4pP/3R4/8/1r3B1R b - -", "k3r3/8/6p1/ppp1np2/4q1p1/2P1b2r/3p4/R2R1K2 b - -", "6kr/1p3R2/1P2R1B1/r6p/P2P1B1P/8/2P3P1/6K1 w - -", "2kr4/1b1p1pp1/p7/P1p5/8/1Pp1n1pr/R3P3/1q1NKBR1 b - -", "1r6/kpNbn1q1/1r6/3pn1N1/P7/1RPB1P1P/R4Q2/7K w - -", "7k/2R5/8/p1pB2P1/r7/2PP4/3K1PP1/1R6 w - -", "2b3rk/1p3p1p/8/2p1b3/1P4PR/5n2/1q2N3/3K1B2 b - -", "rnb1k3/6P1/p3p3/3pP3/2p1pP2/4K3/2r1PRB1/1q3R2 b - -", "r1bq1k1r/pp5p/2pp1p2/3B1p1Q/1b5P/4P3/P1P2PP1/R4KNR w - -", "r1k5/1q1nQ2R/2b5/1p2B3/p1pP1P2/3P2P1/PP5N/2KR4 w - -", "r1b1kbnr/pp1pnp1p/6p1/4B3/4Q3/5N2/PqP1PPPP/RN2KB1R b KQkq -", "2k5/7Q/1p1pp3/p2P1p2/nqPQ1P2/5P2/6B1/2K2R1R w - -", "r6r/1p6/p1n4k/2bp1Q1p/4P2P/P1q5/3N1P2/2B1K1R1 w - -", "7k/1r6/8/p7/K1nN1p1p/7B/4P2P/8 b - -", "2kr3r/pp1q3p/8/2P5/1p3bn1/8/8/4K3 b - -", "1nbqk3/r2p1p2/6n1/1P4Np/P1Q1P2P/8/5PB1/RR4K1 w - -", "4kb1r/1N3p1p/7p/4n3/1pP1q3/3p4/2r5/1N1Q2K1 b k -", "r4kr1/2Q3p1/1p4Pp/p7/P7/8/RP2P2P/4KBR1 w - -"];
 var PZ2=["2r1kb1N/Rbqn1N1Q/1n6/3p2B1/3Pp3/1PP2P2/4P1PP/3K1B1R w - -", "5rk1/5pp1/3R1p2/1p2n2p/1pp5/4PqPP/r4P1R/4KB2 b - -", "6rk/8/2n4p/1p2p2b/3p1p2/5P1K/7R/7r b - -", "2k5/1p2pR2/4r1p1/1PPQ4/5P2/8/7P/5RK1 w - -", "6k1/8/8/K5p1/6qp/8/2p5/5r2 b - -", "k3r2r/3n4/1p4p1/p1p2p2/P1q3pP/2P1b3/3p4/1R1R3K b - -", "7r/1p4k1/1P2RRB1/r6p/P2P1B1P/8/2P3P1/6K1 w - -", "2kr4/1b1p1pp1/p7/P1p5/4q3/1Pp1n1pr/RN2P3/4KBR1 b - -", "kr6/1ppbn1q1/1r6/1N1pn1N1/P7/1RPB1P1P/R4Q2/7K w - -", "4r1k1/8/2p5/8/3K1p2/7P/6p1/4q3 b - -", "1r1q1rk1/2p3pp/p1p5/2bn2B1/1PP1K3/P2p4/Q3p2P/RN2R3 b - -", "7k/2bR4/8/p1pB2P1/8/r1PP4/3K1PP1/1R6 w - -"];
 var PZ=[];PZ1.forEach(function(f){PZ.push({f:f,n:1})});PZ2.forEach(function(f){PZ.push({f:f,n:2})});
@@ -332,11 +370,11 @@ var VIEWS=['home','play','puzzles','lessons'];
 function route(){var v=(location.hash||'').slice(1);if(VIEWS.indexOf(v)<0)v='home';if(v==='home')renderHome();
   VIEWS.forEach(function(x){$('v-'+x).hidden=x!==v});
   [].forEach.call(document.querySelectorAll('nav.tabs a'),function(a){if(a.getAttribute('data-v')===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')})}
-window.addEventListener('hashchange',route);
+window.addEventListener('hashchange',function(){if(!netFromHash())route()});
 function start(d){var g=(d&&d.game)||store.game;
   if(g&&g.S&&g.S.b&&g.S.b.length===64&&g.UCI&&(g.mode==='bot'||g.mode==='two')&&BOT[g.lv]){Gm=g;H=[];
     if(Gm.mode==='bot'&&!Gm.over&&Gm.S.t!==Gm.me){busy=true;renderPlay();setTimeout(engineStep,60)}else renderPlay()}
   else newG('bot','w',store.set.lv);
-  modeUI();pzLoad(0);li=0;lst=parseFen(LS[0].f);lsRender();route()}
+  modeUI();pzLoad(0);li=0;lst=parseFen(LS[0].f);lsRender();netFromHash();route()}
 start({});
 })();

@@ -95,7 +95,7 @@
           <div class="card">
             <h2>Новая партия</h2>
             <div class="lbl">С кем играть</div>
-            <div class="seg" id="segM"><button data-x="bot">С ботом</button><button data-x="two">Вдвоём</button></div>
+            <div class="seg" id="segM"><button data-x="bot">С ботом</button><button data-x="two">Вдвоём</button><button data-x="net">Онлайн</button></div>
             <div id="optBot">
               <div class="lbl">Рейтинг бота</div>
               <div class="seg" id="segL"><button data-x="0">400</button><button data-x="1">700</button><button data-x="2">1000</button><button data-x="3">1300</button><button data-x="4">1600</button><button data-x="5">1900</button></div>
@@ -105,6 +105,14 @@
               <div class="seg" id="segT"><button data-x="0">Без часов</button><button data-x="300">5 минут</button><button data-x="600">10 минут</button></div>
             </div>
             <div id="optTwo" hidden><p class="sub" style="margin:10px 0 0">Два игрока ходят по очереди на одном телефоне. После каждого хода доска поворачивается к тому, чей ход.</p></div>
+            <div id="optNet" hidden>
+              <p class="sub" style="margin:10px 0 12px">Играйте с другом на разных телефонах. Аккаунт не нужен: создайте игру и отправьте другу ссылку или код из пяти цифр. Создатель играет белыми.</p>
+              <div class="row"><button class="btn pri" id="netNew">Создать игру</button></div>
+              <div class="row" id="netShareRow" hidden style="margin-top:8px"><button class="btn" id="netShare">Отправить ссылку другу</button></div>
+              <label class="lbl" for="netCode">Код игры от друга</label>
+              <div class="row"><input id="netCode" inputmode="numeric" maxlength="5" placeholder="12345" autocomplete="off"><button class="btn" id="netJoin">Войти по коду</button></div>
+              <div class="fb" id="netSt" style="margin-top:8px"></div>
+            </div>
             <div class="lbl">Цвет доски</div>
             <div class="seg" id="segB"><button data-x="sky">Небо</button><button data-x="mint">Мята</button><button data-x="wood">Дерево</button><button data-x="grey">Графит</button></div>
             <div class="row" id="rowNew" style="margin-top:12px"><button class="btn pri" id="bNew">Начать новую партию</button></div>
@@ -159,6 +167,7 @@
 <script src="js/engine.js"></script>
 <script src="js/helpers.js"></script>
 <script src="js/engine2.js"></script>
+<script src="js/net.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
