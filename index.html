@@ -9,6 +9,16 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<path id="pbase" d="M10 39.5h25V37a2 2 0 0 0-2-2H12a2 2 0 0 0-2 2z"/>
+<symbol id="pp" viewBox="0 0 45 45"><path d="M16.5 35c0-5 2.2-9.6 4.6-12.4h2.8c2.4 2.8 4.6 7.4 4.6 12.4z"/><rect x="16.5" y="19.6" width="12" height="3.2" rx="1.6"/><circle cx="22.5" cy="13.6" r="5.6"/><use href="#pbase"/></symbol>
+<symbol id="pr" viewBox="0 0 45 45"><path d="M15.5 35 17 18h11l1.5 17z"/><path d="M13 9.5h4v3h3v-3h5v3h3v-3h4V17a1 1 0 0 1-1 1H14a1 1 0 0 1-1-1z"/><path d="M16.7 22.5h11.6M16.3 30h12.4" fill="none" stroke="var(--pd)" stroke-width="1.2"/><use href="#pbase"/></symbol>
+<symbol id="pb" viewBox="0 0 45 45"><path d="M16 35c1.5-3 3-6 3.4-10h6.2c.4 4 1.9 7 3.4 10z"/><rect x="16.5" y="22.6" width="12" height="3.2" rx="1.6"/><path d="M22.5 8.5c4.8 3.4 7.5 7.8 7.5 11.3 0 2-1.3 3.2-3 3.2h-9c-1.7 0-3-1.2-3-3.2 0-3.5 2.7-7.9 7.5-11.3z"/><circle cx="22.5" cy="6.6" r="2.2"/><path d="m25 13.5-3.8 4.7" fill="none" stroke="var(--pd)" stroke-width="1.4"/><use href="#pbase"/></symbol>
+<symbol id="pq" viewBox="0 0 45 45"><path d="M14.5 35c1-3 1.4-5.5 1.5-8h13c.1 2.5.5 5 1.5 8z"/><path d="M11 14.5 16 27h13l5-12.5-5.4 6.5-.6-10-3.7 8.5-1.8-10-1.8 10L17 11l-.6 10z"/><circle cx="11" cy="13.2" r="2"/><circle cx="17" cy="9.8" r="2"/><circle cx="22.5" cy="8.2" r="2"/><circle cx="28" cy="9.8" r="2"/><circle cx="34" cy="13.2" r="2"/><path d="M16.2 31h12.6" fill="none" stroke="var(--pd)" stroke-width="1.2"/><use href="#pbase"/></symbol>
+<symbol id="pk" viewBox="0 0 45 45"><path d="M14.5 35c1-3 1.4-5.5 1.5-8.5h13c.1 3 .5 5.5 1.5 8.5z"/><path d="M15.5 26.5c-3.5-3-3.5-8.8 1-9.8 2.7-.6 4.8 1 6 3.3 1.2-2.3 3.3-3.9 6-3.3 4.5 1 4.5 6.8 1 9.8z"/><path d="M21.3 4.3h2.4v3h3v2.4h-3v4.8h-2.4V9.7h-3V7.3h3z"/><path d="M16.2 31h12.6" fill="none" stroke="var(--pd)" stroke-width="1.2"/><use href="#pbase"/></symbol>
+<symbol id="pn" viewBox="0 0 45 45"><path d="M14.5 35c0-6 2.5-9 6-12.5-3 1.1-5.5 1.9-7.3 1.5-2.4-.4-3.3-2.5-2.2-4.5l4.5-7.1c1-1.6 2.1-2.8 3.5-3.8l-.4-3.3c2.4.5 4.2 1.7 5.3 3.2 5.7.9 9.7 5.7 9.7 13.5 0 5.3-.6 9.5-1.6 13z"/><circle cx="19.2" cy="13.8" r="1.4" fill="var(--pd)" stroke="none"/><circle cx="13.2" cy="21" r=".9" fill="var(--pd)" stroke="none"/><path d="M25.2 11c3.6 2.6 5.4 6.6 5.6 12.5" fill="none" stroke="var(--pd)" stroke-width="1.2"/><use href="#pbase"/></symbol>
+</defs></svg>
 <div class="app">
   <header class="top">
     <div class="logo" aria-hidden="true">&#9822;&#xFE0E;</div>
@@ -23,7 +33,7 @@
   </nav>
   <main>
     <section id="v-home" hidden>
-      <h1>Шахматы с тренером</h1>
+      <h1>Шахматы для начинающих</h1>
       <p class="sub">Играйте, решайте задачи и учитесь. Всё бесплатно и без регистрации.</p>
       <div class="cols">
         <div class="stack">
@@ -48,11 +58,11 @@
     <section id="v-play" hidden>
       <div class="cols">
         <div class="stack">
-          <div class="pl"><span class="av" aria-hidden="true">&#9822;&#xFE0E;</span><span class="nm" id="opp">Соперник</span><span class="cap" id="capT"></span><span class="st" id="status">Ваш ход</span></div>
+          <div class="pl"><span class="av" aria-hidden="true"><svg class="pc b" viewBox="0 0 45 45"><use href="#pn"/></svg></span><span class="nm" id="opp">Соперник</span><span class="cap" id="capT"></span><span class="st" id="status">Ваш ход</span></div>
           <div class="bw"><div class="board" id="bd"></div>
             <div class="promo" id="promo" hidden><div><p>В кого превратить пешку?</p><span id="promoB"></span></div></div>
           </div>
-          <div class="pl"><span class="av me" aria-hidden="true">&#9817;&#xFE0E;</span><span class="nm" id="meN">Вы</span><span class="cap" id="capB"></span><span class="df" id="diff"></span><span class="clk" id="clk" hidden></span></div>
+          <div class="pl"><span class="av me" aria-hidden="true"><svg class="pc w" viewBox="0 0 45 45"><use href="#pp"/></svg></span><span class="nm" id="meN">Вы</span><span class="cap" id="capB"></span><span class="df" id="diff"></span><span class="clk" id="clk" hidden></span></div>
           <div class="evx" id="evx">
             <div class="evh"><span id="evA">Вы 50%</span><span id="evt">равно</span><span id="evB">50% Бот</span></div>
             <div class="tr"><div class="fi" id="evf"></div><i class="q1"></i><i class="mid"></i><i class="q3"></i></div>
@@ -85,7 +95,7 @@
           <div class="card">
             <h2>Новая партия</h2>
             <div class="lbl">С кем играть</div>
-            <div class="seg" id="segM"><button data-x="bot">С ботом</button><button data-x="two">Вдвоём</button><button data-x="net">Онлайн</button></div>
+            <div class="seg" id="segM"><button data-x="bot">С ботом</button><button data-x="two">Вдвоём</button></div>
             <div id="optBot">
               <div class="lbl">Рейтинг бота</div>
               <div class="seg" id="segL"><button data-x="0">400</button><button data-x="1">700</button><button data-x="2">1000</button><button data-x="3">1300</button><button data-x="4">1600</button><button data-x="5">1900</button></div>
@@ -95,13 +105,6 @@
               <div class="seg" id="segT"><button data-x="0">Без часов</button><button data-x="300">5 минут</button><button data-x="600">10 минут</button></div>
             </div>
             <div id="optTwo" hidden><p class="sub" style="margin:10px 0 0">Два игрока ходят по очереди на одном телефоне. После каждого хода доска поворачивается к тому, чей ход.</p></div>
-            <div id="optNet" hidden>
-              <p class="sub" style="margin:10px 0 12px">Оба игрока открывают эту страницу. Один создаёт игру и сообщает другу код из пяти цифр, второй вводит этот код. Создатель играет белыми.</p>
-              <div class="row"><button class="btn pri" id="netNew">Создать игру</button></div>
-              <label class="lbl" for="netCode">Код игры от друга</label>
-              <div class="row"><input id="netCode" inputmode="numeric" maxlength="5" placeholder="12345" autocomplete="off"><button class="btn" id="netJoin">Войти по коду</button></div>
-              <div class="fb" id="netSt" style="margin-top:8px"></div>
-            </div>
             <div class="lbl">Цвет доски</div>
             <div class="seg" id="segB"><button data-x="sky">Небо</button><button data-x="mint">Мята</button><button data-x="wood">Дерево</button><button data-x="grey">Графит</button></div>
             <div class="row" id="rowNew" style="margin-top:12px"><button class="btn pri" id="bNew">Начать новую партию</button></div>

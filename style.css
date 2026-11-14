@@ -190,3 +190,17 @@ textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
 .arow .pill{background:var(--panel-2)}
 @media (max-width:899px){nav.tabs{border-top-color:#E9EEF4;box-shadow:0 -6px 24px rgba(27,38,52,.07)}}
 @media (prefers-reduced-motion:reduce){.sq,.btn,.seg button,nav.tabs a,.chips button{transition:none}}
+
+/* SVG-фигуры */
+.pc{display:block;width:100%;height:100%;overflow:visible;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}
+.pc.w{fill:#FBFDFF;stroke:#1B2634;--pd:#1B2634}
+.pc.b{fill:#27323F;stroke:#0F161F;--pd:#DCE4EE}
+.sq b{display:block;width:90%;height:90%}
+.ghost b{display:block;width:1.15em;height:1.15em}
+.pl .cap{display:inline-flex;align-items:center;letter-spacing:0}
+.pl .cap .pc{width:18px;height:18px;margin-right:-6px}
+.promo button{display:grid;place-items:center;padding:4px}
+.promo button .pc{width:42px;height:42px}
+.vals .pc{width:32px;height:32px;margin:0 auto 2px}
+.av .pc{width:21px;height:21px}
+.av{background:var(--panel-2);border:1px solid var(--line)}
