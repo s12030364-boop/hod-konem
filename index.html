@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ход конём</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="logo" aria-hidden="true">&#9822;&#xFE0E;</div>
+    <div class="brand">Ход конём</div>
+    <div class="tag" id="statline"></div>
+  </header>
+  <nav class="tabs" aria-label="Разделы">
+    <a href="#home" data-v="home"><span aria-hidden="true">&#9818;&#xFE0E;</span>Главная</a>
+    <a href="#play" data-v="play"><span aria-hidden="true">&#9823;&#xFE0E;</span>Игра</a>
+    <a href="#puzzles" data-v="puzzles"><span aria-hidden="true">&#9819;&#xFE0E;</span>Задачи</a>
+    <a href="#lessons" data-v="lessons"><span aria-hidden="true">&#9820;&#xFE0E;</span>Учёба</a>
+    <a href="#coach" data-v="coach"><span aria-hidden="true">&#9821;&#xFE0E;</span>Тренер</a>
+  </nav>
+  <main>
+    <section id="v-home" hidden>
+      <h1>Шахматы с тренером</h1>
+      <p class="sub">Играйте, решайте задачи и учитесь. Всё бесплатно и без регистрации.</p>
+      <div class="cols">
+        <div class="stack">
+          <div class="card hero"><h2>Ваша партия</h2>
+            <div class="board" id="hmB" style="max-width:360px"></div>
+            <p class="sub" id="hmS" style="margin:10px 0 12px"></p>
+            <div class="row"><a class="btn pri" href="#play" id="hmGo">Продолжить игру</a></div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="card"><h2>Ваш счёт</h2>
+            <div class="sum"><div><b id="hR">800</b><span>рейтинг</span></div><div><b id="hW">0</b><span>победы</span></div><div><b id="hD">0</b><span>ничьи</span></div><div><b id="hL">0</b><span>поражения</span></div></div>
+            <div class="row" style="margin-top:12px"><button class="btn" id="hmT">Пройти тест рейтинга</button></div>
+          </div>
+          <div class="card"><h2>Задача дня</h2><p class="sub" id="hmP" style="margin:0 0 12px"></p><div class="row"><button class="btn" id="hmPB">Решить задачу</button></div></div>
+          <div class="card"><h2>Учёба</h2><p class="sub" id="hmL" style="margin:0 0 12px"></p><div class="row"><button class="btn" id="hmLB">Открыть урок</button><button class="btn" id="hmOB">Изучить дебюты</button></div></div>
+          <div class="card"><h2>Последние партии</h2><div id="hmA"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="v-play" hidden>
+      <div class="cols">
+        <div class="stack">
+          <div class="pl"><span class="av" aria-hidden="true">&#9822;&#xFE0E;</span><span class="nm" id="opp">Соперник</span><span class="cap" id="capT"></span><span class="st" id="status">Ваш ход</span></div>
+          <div class="bw"><div class="board" id="bd"></div>
+            <div class="promo" id="promo" hidden><div><p>В кого превратить пешку?</p><span id="promoB"></span></div></div>
+          </div>
+          <div class="pl"><span class="av me" aria-hidden="true">&#9817;&#xFE0E;</span><span class="nm" id="meN">Вы</span><span class="cap" id="capB"></span><span class="df" id="diff"></span><span class="clk" id="clk" hidden></span></div>
+          <div class="evx" id="evx">
+            <div class="evh"><span id="evA">Вы 50%</span><span id="evt">равно</span><span id="evB">50% Бот</span></div>
+            <div class="tr"><div class="fi" id="evf"></div><i class="q1"></i><i class="mid"></i><i class="q3"></i></div>
+            <div class="evs"><span>0%</span><span>25</span><span>50</span><span>75</span><span>100%</span></div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="card coach">
+            <div class="who"><span class="av" aria-hidden="true">&#9822;&#xFE0E;</span>Тренер</div>
+            <div class="lab" id="lab"></div>
+            <p id="co"></p>
+            <div class="ai" id="ai" hidden></div>
+            <div class="row" style="margin-top:12px">
+              <button class="btn" id="bHint">Подсказка</button>
+              <button class="btn pri" id="bWhy" hidden>Объяснить ход</button>
+            </div>
+          </div>
+          <div class="card" id="sumCard" hidden>
+            <h2 id="sumT">Итоги партии</h2>
+            <div class="sum"><div><b id="sAcc">0</b><span>точность, %</span></div><div><b id="sW">0</b><span>неточности</span></div><div><b id="sE">0</b><span>ошибки</span></div><div><b id="sB">0</b><span>зевки</span></div></div>
+          </div>
+          <div class="row">
+            <button class="btn" id="bUndo">Вернуть ход</button>
+            <button class="btn" id="bRes">Сдаться</button>
+          </div>
+          <div class="card">
+            <h2>Ходы</h2>
+            <div class="moves" id="mv"></div>
+            <div class="empty" id="mvE">Здесь появится запись партии с оценкой каждого вашего хода.</div>
+            <p class="legend">!! блестящий · ★ лучший · ! отличный · 👍 хороший · ?! неточность · ? ошибка · ?? зевок</p>
+          </div>
+          <div class="card">
+            <h2>Новая партия</h2>
+            <div class="lbl">С кем играть</div>
+            <div class="seg" id="segM"><button data-x="bot">С ботом</button><button data-x="two">Вдвоём</button><button data-x="net">Онлайн</button></div>
+            <div id="optBot">
+              <div class="lbl">Рейтинг бота</div>
+              <div class="seg" id="segL"><button data-x="0">400</button><button data-x="1">700</button><button data-x="2">1000</button><button data-x="3">1300</button><button data-x="4">1600</button><button data-x="5">1900</button></div>
+              <div class="lbl">Ваш цвет</div>
+              <div class="seg" id="segC"><button data-x="w">Белые</button><button data-x="b">Чёрные</button><button data-x="r">Случайно</button></div>
+              <div class="lbl">Ваше время на партию</div>
+              <div class="seg" id="segT"><button data-x="0">Без часов</button><button data-x="300">5 минут</button><button data-x="600">10 минут</button></div>
+            </div>
+            <div id="optTwo" hidden><p class="sub" style="margin:10px 0 0">Два игрока ходят по очереди на одном телефоне. После каждого хода доска поворачивается к тому, чей ход.</p></div>
+            <div id="optNet" hidden>
+              <p class="sub" style="margin:10px 0 12px">Оба игрока открывают эту страницу. Один создаёт игру и сообщает другу код из пяти цифр, второй вводит этот код. Создатель играет белыми.</p>
+              <div class="row"><button class="btn pri" id="netNew">Создать игру</button></div>
+              <label class="lbl" for="netCode">Код игры от друга</label>
+              <div class="row"><input id="netCode" inputmode="numeric" maxlength="5" placeholder="12345" autocomplete="off"><button class="btn" id="netJoin">Войти по коду</button></div>
+              <div class="fb" id="netSt" style="margin-top:8px"></div>
+            </div>
+            <div class="lbl">Цвет доски</div>
+            <div class="seg" id="segB"><button data-x="sky">Небо</button><button data-x="mint">Мята</button><button data-x="wood">Дерево</button><button data-x="grey">Графит</button></div>
+            <div class="row" id="rowNew" style="margin-top:12px"><button class="btn pri" id="bNew">Начать новую партию</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="v-puzzles" hidden>
+      <h1>Задачи на мат</h1>
+      <p class="sub" id="pzSub"></p>
+      <div class="chips" id="pzC" style="margin-bottom:12px"></div>
+      <div class="cols">
+        <div class="stack"><div class="board" id="pzB"></div></div>
+        <div class="stack">
+          <div class="card">
+            <h2 id="pzT"></h2>
+            <div class="fb" id="pzF"></div>
+            <div class="row" style="margin-top:10px">
+              <button class="btn" id="pzS">Показать решение</button>
+              <button class="btn" id="pzR">Сначала</button>
+              <button class="btn pri" id="pzN">Следующая</button>
+            </div>
+          </div>
+          <div class="card"><h2>Тест рейтинга</h2>
+            <p class="sub" style="margin:0 0 12px">Восемь заданий на мат, на каждое одна попытка, быстрые ответы ценятся выше. В конце вы получите примерный рейтинг по шкале сайта. Это не официальный рейтинг.</p>
+            <div class="fb" id="tRes"></div>
+            <div class="row" style="margin-top:8px"><button class="btn pri" id="tGo">Начать тест</button></div>
+          </div>
+          <div class="card"><h2>Как искать мат</h2><p class="sub" style="margin:0">Сначала проверьте все шахи. Для каждого спросите: может ли король уйти, можно ли закрыться, можно ли взять вашу фигуру. Если три раза ответ «нет», это мат.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="v-lessons" hidden>
+      <h1>Учёба</h1>
+      <p class="sub" id="lsSub"></p>
+      <div class="seg" id="lsMode" style="max-width:340px;margin-bottom:12px"><button data-x="l">Уроки</button><button data-x="o">Дебюты</button></div>
+      <div class="chips" id="lsC" style="margin-bottom:12px"></div>
+      <div class="cols">
+        <div class="stack"><div class="board" id="lsB"></div></div>
+        <div class="stack">
+          <div class="card lesson"><h2 id="lsT"></h2><div id="lsX"></div>
+            <div class="row"><button class="btn" id="lsP">Назад</button><button class="btn pri" id="lsN">Дальше</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="v-coach" hidden>
+      <h1>Тренер</h1>
+      <p class="sub">Спросите о правилах, дебютах или о вашей текущей партии. Тренер видит позицию и запись ходов из раздела «Игра».</p>
+      <div class="card">
+        <div class="chat" id="chat"><div class="msg a">Здравствуйте. Я тренер Claude. Спросите что угодно о шахматах или о позиции на вашей доске.</div></div>
+        <div class="chips" id="sug" style="margin:12px 0 8px">
+          <button class="txt">Что мне делать в этой позиции?</button>
+          <button class="txt">Какой дебют выбрать новичку?</button>
+          <button class="txt">Объясни рокировку</button>
+          <button class="txt">Где я ошибся в партии?</button>
+        </div>
+        <label class="lbl" for="q">Ваш вопрос</label>
+        <textarea id="q" placeholder="Почему нельзя рано выводить ферзя?"></textarea>
+        <div class="err" id="qe"></div>
+        <div class="row"><button class="btn pri" id="send">Спросить тренера</button></div>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="js/engine.js"></script>
+<script src="js/helpers.js"></script>
+<script src="js/engine2.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
