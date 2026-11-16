@@ -213,9 +213,8 @@ textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
 .sq.hn::before{background:radial-gradient(circle,rgba(60,200,175,.95) 0,rgba(60,200,175,.75) 58%,rgba(60,200,175,0) 72%)}
 .sq.ck::before{background:radial-gradient(circle,rgba(226,74,60,.95) 0,rgba(226,74,60,.7) 50%,rgba(226,74,60,0) 72%)}
 .sq.ov{box-shadow:none}.sq.ov::after{content:"";position:absolute;inset:3%;width:auto;height:auto;border-radius:50%;border:.7cqw solid rgba(255,255,255,.95);background:none}
-/* взятие: фигура вздрагивает, от клетки расходится круг */
+/* взятие: от клетки расходится круг. Шах: король вздрагивает. Мат: король и доска трясутся */
 .sq.hit{z-index:3}
-.sq.hit b{animation:hk-shake .34s ease var(--hd,0ms) both}
 .sq.hit::before{content:"";position:absolute;inset:6%;border-radius:50%;border:.9cqw solid var(--accent);pointer-events:none;z-index:2;animation:hk-ring .5s ease-out var(--hd,0ms) both}
 @keyframes hk-shake{0%,100%{transform:none}18%{transform:translateX(-9%) rotate(-9deg)}36%{transform:translateX(9%) rotate(8deg)}54%{transform:translateX(-6%) rotate(-5deg)}72%{transform:translateX(4%) rotate(3deg)}}
 @keyframes hk-ring{0%{transform:scale(.35);opacity:0}15%{opacity:1}100%{transform:scale(1.55);opacity:0}}
@@ -244,3 +243,9 @@ textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
 .ant .n{font:500 15px var(--f-mono)}
 .ant .ct{display:flex;align-items:center;gap:6px;justify-content:flex-start;min-width:118px}
 .ant b{font-weight:600}
+
+.sq.kshake,.sq.kmate{z-index:3}
+.sq.kshake b{animation:hk-shake .4s ease var(--hd,0ms) both}
+.sq.kmate b{animation:hk-shake .36s ease var(--hd,0ms) 3 both}
+.board.quake{animation:hk-quake .6s ease var(--hd,0ms)}
+@keyframes hk-quake{0%,100%{transform:none}12%{transform:translate(-5px,2px)}26%{transform:translate(5px,-2px)}40%{transform:translate(-4px,-1px)}54%{transform:translate(4px,1px)}68%{transform:translate(-2px,0)}82%{transform:translate(2px,0)}}
