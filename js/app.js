@@ -2,6 +2,22 @@
 var $=function(id){return document.getElementById(id)};
 function pc(k,c){return '<svg class="pc '+c+'" viewBox="0 0 45 45" aria-hidden="true"><use href="#p'+k+'"/></svg>'}
 function glyph(p){return pc(p.toLowerCase(),colOf(p))}
+var KEY={'лучший ход':'best','отличный ход':'exc','хороший ход':'ok','неточность':'inac','ошибка':'mist','зевок':'blun','блестящий ход':'brl','упущен мат':'inac'};
+var PL={'Кр':'k','Ф':'q','Л':'r','С':'b','К':'n'};
+function fig(sn,c){var m=/^(Кр|Ф|Л|С|К)/.exec(sn),k='p',rest=sn;
+  if(sn.charAt(0)==='O')k='k';else if(m){k=PL[m[1]];rest=sn.slice(m[1].length)}
+  rest=rest.replace(/=(Кр|Ф|Л|С|К)/,function(_,x){return '='+pc(PL[x],c)});
+  return pc(k,c)+'<span>'+rest+'</span>'}
+function evs(cp,P){if(cp==null)return '';var v=cp*(P==='w'?1:-1),x=Math.abs(v);if(x>50000)return (v>0?'+':'−')+'мат';x=(x/100).toFixed(1);return (x==='0.0'?'':v>0?'+':'−')+x}
+var NOMO=false;try{NOMO=window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){}
+function slide(el,f,t){var a=el.querySelector('[data-i="'+t+'"]'),b=el.querySelector('[data-i="'+f+'"]'),p=a&&a.querySelector('b');if(!p||!b||!p.animate)return;
+  var ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();a.style.zIndex=4;
+  var an=p.animate([{transform:'translate('+(rb.left-ra.left)+'px,'+(rb.top-ra.top)+'px)'},{transform:'none'}],{duration:190,easing:'cubic-bezier(.2,.7,.3,1)'});
+  an.onfinish=function(){a.style.zIndex=''}}
+function fx(el,S,L,noS){if(NOMO||!L)return;var p=S.b[L.t];
+  if(!noS){slide(el,L.f,L.t);if(p&&p.toLowerCase()==='k'&&Math.abs(L.t-L.f)===2)slide(el,L.t>L.f?L.t+1:L.t-2,L.t>L.f?L.t-1:L.t+1)}
+  if(L.x){var a=el.querySelector('[data-i="'+L.t+'"]');if(a){a.style.setProperty('--hd',noS?'0ms':'170ms');a.classList.add('hit')}
+    try{if(navigator.vibrate)navigator.vibrate(noS?35:[0,170,35])}catch(e){}}}
 function sq(n){return (8-(+n[1]))*8+(n.charCodeAt(0)-97)}
 function parseFen(f){var p=f.split(' '),b=[],i,k,ch;
   for(i=0;i<p[0].length;i++){ch=p[0][i];if(ch==='/')continue;if(ch>='1'&&ch<='8'){for(k=0;k<+ch;k++)b.push(null)}else b.push(ch)}
@@ -64,15 +80,16 @@ function save(){try{if(Gm&&Gm.mode!=='net'&&!busy)store.game=Gm;localStorage.set
 var BOT=[{r:400,d:1,z:260,rnd:0.25},{r:700,d:1,z:110,rnd:0.08},{r:1000,d:2,z:60},{r:1300,d:3,z:25},{r:1600,d:4,ms:500},{r:1900,d:9,ms:1000}];
 if(!(store.set.lv>=0&&store.set.lv<BOT.length))store.set.lv=2;
 var ACC={p:'пешку',n:'коня',b:'слона',r:'ладью',q:'ферзя'};
-var Gm=null,H=[],sel=-1,hint=null,busy=false,promo=null;
+var Gm=null,H=[],sel=-1,hint=null,busy=false,promo=null,AN=null,animN=-9,anPrev=-9,dragged=false;
 var NR=null,netOff=[],ROOM=window.HKNet||null;
 function posKey(s){return fen(s).slice(0,-4)}
 function uci(m){return sqn(m.f)+sqn(m.t)+(m.p||'')}
 function other(c){return c==='w'?'b':'w'}
 function cname(c,cap){return c==='w'?(cap?'Белые':'белые'):(cap?'Чёрные':'чёрные')}
+function evP(){return Gm.mode==='two'?'w':(Gm.me||'w')}
 function view(){return Gm.mode==='two'?Gm.S.t:(Gm.me||'w')}
 function mySide(){return Gm.mode==='two'?Gm.S.t:Gm.me}
-function canPlay(){if(busy||Gm.over||promo)return false;if(Gm.mode==='two')return true;return !!Gm.me&&Gm.S.t===Gm.me}
+function canPlay(){if(busy||Gm.over||promo||AN)return false;if(Gm.mode==='two')return true;return !!Gm.me&&Gm.S.t===Gm.me}
 function botMove(s,L){var ls=legal(s);if(!ls.length)return null;
   if(L.rnd&&Math.random()<L.rnd)return ls[Math.floor(Math.random()*ls.length)];
   if(L.z){var best=null,bv=-1e9;scoreAll(s,L.d).forEach(function(x){var v=x.v+Math.random()*L.z;if(v>bv){bv=v;best=x.m}});return best}
@@ -89,9 +106,9 @@ function why(s,m){var p=s.b[m.f].toLowerCase(),cap=s.b[m.t],r=m.f>>3,c=m.t&7,tr=
 function rate(d){if(d<10)return ['лучший ход','good','★','best'];if(d<40)return ['отличный ход','good','!','exc'];if(d<90)return ['хороший ход','good','👍','ok'];if(d<200)return ['неточность','warn','?!','inac'];if(d<400)return ['ошибка','bad','?','mist'];return ['зевок','bad','??','blun']}
 function newG(mode,col,lv){
   var tc=mode==='bot'?store.set.tc:0;
-  Gm={mode:mode,S:newGame(),me:col,lv:lv,tc:tc,tm:tc*1000,MV:[],UCI:[],RT:[],POS:[],hm:0,last:null,over:null,settled:false,evw:0,best:null,bdg:null,lab:'Партия началась',labc:'tip',ai:'',
+  Gm={mode:mode,S:newGame(),me:col,lv:lv,tc:tc,tm:tc*1000,MV:[],UCI:[],RT:[],EV:[],POS:[],hm:0,last:null,over:null,settled:false,evw:0,best:null,bdg:null,lab:'Партия началась',labc:'tip',ai:'',
     co:mode==='two'?'Игра вдвоём на одном устройстве. Первыми ходят белые. После хода доска поворачивается к сопернику.':mode==='net'?'':col==='w'?'Вы играете белыми против бота '+BOT[lv].r+'. Начните с центра: пешки на e4 или d4 открывают дорогу слону и ферзю.':'Вы играете чёрными против бота '+BOT[lv].r+'. На ход в центр ответьте своим: e5 или d5.'};
-  Gm.POS.push(posKey(Gm.S));H=[];sel=-1;hint=null;promo=null;busy=false;
+  Gm.POS.push(posKey(Gm.S));H=[];AN=null;sel=-1;hint=null;promo=null;busy=false;
   if(mode==='bot'&&col==='b'){busy=true;renderPlay();setTimeout(engineStep,60)}else{renderPlay();save()}}
 function insufficient(b){var a=[];b.forEach(function(p){if(p&&p.toLowerCase()!=='k')a.push(p.toLowerCase())});return a.length===0||(a.length===1&&(a[0]==='n'||a[0]==='b'))}
 function finish(o){if(!Gm.over)Gm.over=o}
@@ -113,9 +130,9 @@ function settle(){if(!Gm.over||Gm.settled)return;Gm.settled=true;if(Gm.mode!=='b
   store.arch.unshift({r:o.r,lv:Gm.lv,n:Math.ceil(Gm.MV.length/2),a:n?Math.round(acc/n):0,dr:dr,d:new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'short'})});
   store.arch=store.arch.slice(0,10)}
 function applyMove(m){var p=Gm.S.b[m.f].toLowerCase(),cap=Gm.S.b[m.t]||m.ep;
-  Gm.MV.push(san(Gm.S,m));Gm.UCI.push(uci(m));Gm.S=make(Gm.S,m);Gm.last={f:m.f,t:m.t};Gm.hm=(p==='p'||cap)?0:Gm.hm+1;Gm.POS.push(posKey(Gm.S));Gm.best=null;checkOver()}
+  Gm.MV.push(san(Gm.S,m));Gm.UCI.push(uci(m));Gm.S=make(Gm.S,m);Gm.last={f:m.f,t:m.t,x:cap?1:0};Gm.hm=(p==='p'||cap)?0:Gm.hm+1;Gm.POS.push(posKey(Gm.S));Gm.best=null;checkOver()}
 function evalLater(){var ref=Gm.S;setTimeout(function(){if(Gm.S!==ref||Gm.over||busy||Gm.mode==='net')return;
-  var a=think(Gm.S,250,8);Gm.evw=a.v*(Gm.S.t==='w'?1:-1);Gm.best=a.m?{f:a.m.f,t:a.m.t,p:a.m.p||''}:null;evalUI();save()},40)}
+  var a=think(Gm.S,250,8);Gm.evw=a.v*(Gm.S.t==='w'?1:-1);Gm.best=a.m?{f:a.m.f,t:a.m.t,p:a.m.p||''}:null;if(Gm.MV.length){Gm.EV[Gm.MV.length-1]=Gm.evw;renderMoves()}evalUI();save()},40)}
 function engineStep(){var S=Gm.S,m=botMove(S,BOT[Gm.lv]),pre=Gm.co;
   if(m){var sn=san(S,m),w=why(S,m);applyMove(m);
     Gm.co=(pre?pre+' ':'')+'Бот сыграл '+sn+'. '+w+(!Gm.over&&inCheck(Gm.S)?' Вам шах: уйдите королём, закройтесь или возьмите атакующую фигуру.':'')}
@@ -127,60 +144,110 @@ function userMove(mv){var S0=Gm.S,idx=Gm.MV.length;
   if(Gm.mode==='net'){Gm.lab=Gm.MV[idx];Gm.labc='tip';Gm.co=Gm.over?'Партия окончена.':'Ход отправлен. Ждём ответа соперника.';if(NR)NR.presence({m:Gm.UCI.join(' ')}).catch(function(){});renderPlay();return}
   busy=true;Gm.lab=Gm.MV[idx];Gm.labc='tip';Gm.co='Оцениваю ваш ход…';renderPlay();
   setTimeout(function(){
-    var a=think(S0,350,8),same=a.m&&a.m.f===mv.f&&a.m.t===mv.t&&(a.m.p||'')===(mv.p||''),pv=same?a.v:childVal(S0,mv,a.d,300),d=Math.max(0,a.v-pv),r=rate(d),pre,alt='';
-    if(r[3]==='best'&&!same)r=['отличный ход','good','!','exc'];
-    var pc=S0.b[mv.f].toLowerCase(),cp=S0.b[mv.t],n1=make(S0,mv);
-    if(d<10&&pc!=='p'&&pc!=='k'&&a.v<700&&a.v>-300&&VAL[pc]-(cp?VAL[cp.toLowerCase()]:0)>=200&&attacked(n1.b,mv.t,n1.t)&&!attacked(n1.b,mv.t,S0.t))r=['блестящий ход','good','!!','brl'];
-    if(a.v>50000&&pv<50000){r=['упущен мат','warn','?!','inac'];alt=san(S0,a.m);pre='Был мат: '+alt+'.'}
-    else if(d>=90&&a.m){alt=san(S0,a.m);pre='Сильнее было '+alt+'.'}
-    else pre=why(S0,mv);
-    Gm.RT.push({i:idx,l:r[0],c:r[1],s:r[2],d:Math.min(d,1000),b:alt});Gm.bdg={i:mv.t,s:r[2],k:r[3]};
-    Gm.lab=Gm.MV[idx]+' '+r[2]+' · '+r[0];Gm.labc=r[1];Gm.co=pre;Gm.evw=pv*(Gm.me==='w'?1:-1);
+    var j=judge(S0,mv,330);
+    Gm.RT.push({i:idx,l:j.l,c:j.c,s:j.s,k:j.k,d:j.d,b:j.b});Gm.EV[idx]=j.ev;Gm.bdg={i:mv.t,s:j.s,k:j.k};
+    Gm.lab=Gm.MV[idx]+' '+j.s+' · '+j.l;Gm.labc=j.c;Gm.co=j.pre;Gm.evw=j.ev;
     if(Gm.over){busy=false;renderPlay();save();return}
-    renderPlay();setTimeout(engineStep,40)},40)}
-function capt(col){var need={p:8,n:2,b:2,r:2,q:1},s='',v=0;
-  Gm.S.b.forEach(function(p){if(p&&colOf(p)===col&&need[p.toLowerCase()]!==undefined)need[p.toLowerCase()]--});
+    renderPlay();setTimeout(engineStep,40)},230)}
+function judge(S0,mv,ms){
+  var a=think(S0,ms,8),same=a.m&&a.m.f===mv.f&&a.m.t===mv.t&&(a.m.p||'')===(mv.p||''),pv=same?a.v:childVal(S0,mv,a.d,ms),d=Math.max(0,a.v-pv),r=rate(d),pre,alt='';
+  if(r[3]==='best'&&!same)r=['отличный ход','good','!','exc'];
+  var p=S0.b[mv.f].toLowerCase(),cp=S0.b[mv.t],n1=make(S0,mv);
+  if(d<10&&p!=='p'&&p!=='k'&&a.v<700&&a.v>-300&&VAL[p]-(cp?VAL[cp.toLowerCase()]:0)>=200&&attacked(n1.b,mv.t,n1.t)&&!attacked(n1.b,mv.t,S0.t))r=['блестящий ход','good','!!','brl'];
+  if(a.v>50000&&pv<50000){r=['упущен мат','warn','?!','inac'];alt=san(S0,a.m);pre='Был мат: '+alt+'.'}
+  else if(d>=90&&a.m){alt=san(S0,a.m);pre='Сильнее было '+alt+'.'}
+  else pre=why(S0,mv);
+  return {l:r[0],c:r[1],s:r[2],k:r[3],d:Math.min(d,1000),b:alt,pre:pre,ev:pv*(S0.t==='w'?1:-1)}}
+function capt(col,S){var need={p:8,n:2,b:2,r:2,q:1},s='',v=0;
+  S.b.forEach(function(p){if(p&&colOf(p)===col&&need[p.toLowerCase()]!==undefined)need[p.toLowerCase()]--});
   ['q','r','b','n','p'].forEach(function(k){for(var i=0;i<need[k];i++){s+=pc(k,col);v+=VAL[k]}});
   return {s:s,v:v}}
-function evalUI(){var x=$('evx');x.hidden=Gm.mode==='net';if(Gm.mode==='net')return;
-  var two=Gm.mode==='two',va=two?'w':Gm.me,nA=two?'Белые':'Вы',nB=two?'Чёрные':'Бот',p,t,cp;
-  if(Gm.over){p=Gm.over.wc?(Gm.over.wc===va?100:0):50;t=!Gm.over.wc?'ничья':two?'победа '+(Gm.over.wc==='w'?'белых':'чёрных'):Gm.over.wc===va?'победа':'поражение'}
-  else{cp=(Gm.evw||0)*(va==='w'?1:-1);
+function evalUI(){var x=$('evx'),an=AN&&AN.done,net=Gm.mode==='net';x.hidden=net&&!an;if(net&&!an)return;
+  var two=Gm.mode==='two',va=two?'w':(Gm.me||'w'),nA=two?'Белые':'Вы',nB=two?'Чёрные':net?'Соперник':'Бот',p,t,cp,over=Gm.over,evw=Gm.evw;
+  if(an&&AN.i<AN.n){over=null;evw=AN.i?AN.R[AN.i-1].ev:0}
+  if(over){p=over.wc?(over.wc===va?100:0):50;t=!over.wc?'ничья':two?'победа '+(over.wc==='w'?'белых':'чёрных'):over.wc===va?'победа':'поражение'}
+  else{cp=(evw||0)*(va==='w'?1:-1);
     if(cp>50000){p=99;t=two?'мат у белых':'мат за вас'}else if(cp<-50000){p=1;t=two?'мат у чёрных':'мат вам'}
     else{p=Math.max(1,Math.min(99,Math.round(100/(1+Math.pow(10,-cp/400)))));var pw=Math.abs(cp)/100;
-      t=pw<0.3?'равно':(cp>0?(two?'белые +':'вы +'):(two?'чёрные +':'бот +'))+pw.toFixed(1)}}
+      t=pw<0.3?'равно':(cp>0?(two?'белые +':'вы +'):(two?'чёрные +':net?'соперник +':'бот +'))+pw.toFixed(1)}}
   $('evA').textContent=nA+' '+p+'%';$('evB').textContent=(100-p)+'% '+nB;$('evt').textContent=t;$('evf').style.width=p+'%'}
+function renderMoves(){var h='',i,rt={},P=evP(),an=AN&&AN.done,cur=an?AN.i-1:-1,box=$('mv');
+  if(an)AN.R.forEach(function(r,i){if(r)rt[i]=r});else Gm.RT.forEach(function(r){rt[r.i]=r});
+  function cell(i){if(i>=Gm.MV.length)return '<span></span>';var r=rt[i],ev=an?(r?r.ev:null):(Gm.EV||[])[i];
+    return '<span class="mc'+(i===cur?' cur':'')+'" data-ply="'+i+'"><span class="mt">'+fig(Gm.MV[i],i%2?'b':'w')+'</span>'+(r&&r.s?'<em class="bg '+(r.k||KEY[r.l]||'ok')+'">'+r.s+'</em>':'')+'<span class="me">'+evs(ev,P)+'</span></span>'}
+  for(i=0;i<Gm.MV.length;i+=2)h+='<span class="no">'+(i/2+1)+'.</span>'+cell(i)+cell(i+1);
+  box.innerHTML=h;$('mvE').hidden=Gm.MV.length>0;
+  var c=box.querySelector('.cur');box.scrollTop=an?(c?c.offsetTop-box.clientHeight/2:0):box.scrollHeight}
 function renderPlay(){if(Gm.over&&!busy)settle();
-  var S=Gm.S,my=canPlay(),V=view(),md=Gm.mode,chk=!Gm.over&&inCheck(S);
-  paint($('bd'),S,{flip:V==='b',sel:sel,tg:sel>=0&&my?targets(legal(S),sel):{},last:Gm.last,hint:hint,bdg:Gm.bdg,grab:my?mySide():null});
+  var an=AN&&AN.done,S=an?AN.S[AN.i]:Gm.S,my=!an&&!AN&&canPlay(),V=view(),md=Gm.mode,chk=!Gm.over&&inCheck(S),lm=an&&AN.i?AN.M[AN.i-1]:null,lr=lm?AN.R[AN.i-1]:null;
+  var L=an?(lm?{f:lm.f,t:lm.t,x:(AN.S[AN.i-1].b[lm.t]||lm.ep)?1:0}:null):Gm.last;
+  paint($('bd'),S,{flip:V==='b',sel:an?-1:sel,tg:sel>=0&&my?targets(legal(S),sel):{},last:L,hint:an?null:hint,bdg:an?(lr&&lr.s?{i:lm.t,s:lr.s,k:lr.k}:null):Gm.bdg,grab:my?mySide():null});
+  if(an){if(AN.i===anPrev+1)fx($('bd'),S,L,false);anPrev=AN.i}
+  else{if(Gm.MV.length===animN+1)fx($('bd'),S,L,dragged);animN=Gm.MV.length;dragged=false}
   $('opp').textContent=md==='bot'?'Бот '+BOT[Gm.lv].r:md==='two'?cname(other(V),1):'Соперник';
   $('meN').textContent=md==='bot'?'Вы':md==='two'?cname(V,1):'Вы'+(Gm.me?' ('+cname(Gm.me)+')':'');
-  $('status').textContent=Gm.over?Gm.over.t:md==='bot'?(busy||S.t!==Gm.me?'Бот думает…':chk?'Вам шах. Ваш ход':'Ваш ход'):
+  $('status').textContent=an?'Анализ: ход '+AN.i+' из '+AN.n:Gm.over?Gm.over.t:md==='bot'?(busy||S.t!==Gm.me?'Бот думает…':chk?'Вам шах. Ваш ход':'Ваш ход'):
     md==='two'?(chk?'Шах. ':'')+'Ход '+(S.t==='w'?'белых':'чёрных'):
     !Gm.me||!Gm.seen?'Ждём соперника…':!Gm.opp?'Соперник не в сети':S.t===Gm.me?(chk?'Вам шах. Ваш ход':'Ваш ход'):'Ход соперника';
-  var mine=capt(other(V)),his=capt(V);
+  var mine=capt(other(V),S),his=capt(V,S);
   $('capB').innerHTML=mine.s;$('capT').innerHTML=his.s;
   var dm=Math.round((mine.v-his.v)/100);$('diff').textContent=dm>0?'+'+dm:dm<0?''+dm:'';
   evalUI();
-  $('lab').textContent=Gm.lab;$('lab').className='lab '+Gm.labc;$('co').textContent=Gm.co;
-  $('bHint').hidden=md==='net';$('bHint').disabled=!my;
+  if(an){var P=evP();
+    if(lm){$('lab').textContent=Math.ceil(AN.i/2)+(AN.i%2?'. ':'… ')+Gm.MV[AN.i-1]+' '+lr.s+' · '+lr.l;$('lab').className='lab '+lr.c;
+      $('co').textContent=(AN.i%2?'Ход белых. ':'Ход чёрных. ')+'Оценка позиции: '+(evs(lr.ev,P)||'0.0')+'. '+(lr.pre||'')}
+    else{$('lab').textContent='Анализ партии';$('lab').className='lab tip';$('co').textContent='Начальная позиция. Листайте ходы стрелками под доской или нажмите на любой ход в списке.'}}
+  else{$('lab').textContent=Gm.lab;$('lab').className='lab '+Gm.labc;$('co').textContent=Gm.co}
+  $('bHint').hidden=md==='net'||!!AN;$('bHint').disabled=!my;
   $('bUndo').disabled=busy||!H.length||!!Gm.over||md!=='bot';$('bRes').disabled=busy||!!Gm.over||!Gm.MV.length;
-  var h='',i,rt={};Gm.RT.forEach(function(r){rt[r.i]=r});
-  function cl(i){return rt[i]?rt[i].c:''}function tx(i){return (Gm.MV[i]||'')+(rt[i]&&rt[i].s?' '+rt[i].s:'')}
-  for(i=0;i<Gm.MV.length;i+=2)h+='<span class="no">'+(i/2+1)+'.</span><span class="'+cl(i)+'">'+tx(i)+'</span><span class="'+cl(i+1)+'">'+tx(i+1)+'</span>';
-  $('mv').innerHTML=h;$('mvE').hidden=Gm.MV.length>0;$('mv').scrollTop=$('mv').scrollHeight;
+  renderMoves();
   var n=Gm.RT.length,acc=0,w=0,e=0,b=0;
   Gm.RT.forEach(function(r){acc+=Math.max(0,100-r.d/5);if(r.l==='неточность'||r.l==='упущен мат')w++;else if(r.l==='ошибка')e++;else if(r.l==='зевок')b++});
-  $('sumCard').hidden=!Gm.over||!n||md!=='bot';
-  if(n){$('sAcc').textContent=Math.round(acc/n);$('sW').textContent=w;$('sE').textContent=e;$('sB').textContent=b;$('sumT').textContent=Gm.over?Gm.over.t+'. Рейтинг '+(Gm.dr>=0?'+':'')+(Gm.dr||0):'Итоги партии'}
+  $('sumCard').hidden=!Gm.over||!Gm.MV.length;$('sumG').hidden=!n||md!=='bot';$('bAnRow').hidden=!!AN;
+  $('sumT').textContent=Gm.over?Gm.over.t+(md==='bot'&&Gm.dr!==undefined?'. Рейтинг '+(Gm.dr>=0?'+':'')+Gm.dr:''):'Итоги партии';
+  if(n){$('sAcc').textContent=Math.round(acc/n);$('sW').textContent=w;$('sE').textContent=e;$('sB').textContent=b}
+  $('anNav').hidden=!an;$('anCard').hidden=!AN;if(AN)anCard();
   $('promo').hidden=!promo;
   $('statline').textContent='Рейтинг '+store.rating+' · Победы '+store.stats.w;updClk()}
+var CAT=[['brl','!!','Блестящий'],['best','★','Лучший'],['exc','!','Отличный'],['ok','👍','Хороший'],['inac','?!','Неточность'],['mist','?','Ошибка'],['blun','??','Зевок']];
+function anBuild(){var S=[newGame()],M=[],i,m;for(i=0;i<Gm.UCI.length;i++){m=legal(S[i]).filter(function(x){return uci(x)===Gm.UCI[i]})[0];if(!m)break;M.push(m);S.push(make(S[i],m))}return {S:S,M:M}}
+function anStart(){if(!Gm.over||!Gm.MV.length||busy||AN)return;var b=anBuild(),n=b.M.length;if(!n)return;
+  AN={S:b.S,M:b.M,R:[],i:0,n:n,p:0,done:false};sel=-1;hint=null;anPrev=-9;
+  if(Gm.an&&Gm.an.length===n){AN.R=Gm.an;AN.done=true;renderPlay()}else{renderPlay();anStep(0,AN)}}
+function anStep(k,tok){if(AN!==tok)return;
+  if(k>=tok.n){tok.done=true;Gm.an=tok.R;save();renderPlay();return}
+  var rt=null;Gm.RT.forEach(function(r){if(r.i===k)rt=r});
+  if(rt&&Gm.EV&&Gm.EV[k]!=null)tok.R[k]={l:rt.l,c:rt.c,s:rt.s,k:rt.k||KEY[rt.l]||'ok',d:rt.d,b:rt.b,ev:Gm.EV[k],pre:rt.b?(rt.l==='упущен мат'?'Был мат: ':'Сильнее было ')+rt.b+'.':why(tok.S[k],tok.M[k])};
+  else tok.R[k]=judge(tok.S[k],tok.M[k],150);
+  tok.p=k+1;anCard();setTimeout(function(){anStep(k+1,tok)},rt?0:20)}
+function anGo(i){if(!AN||!AN.done)return;AN.i=Math.max(0,Math.min(AN.n,i));renderPlay()}
+function anCard(){var done=AN.done;$('anP').hidden=done;$('anBody').hidden=!done;
+  if(!done){$('anPT').textContent='Проверяю ход '+Math.min(AN.p+1,AN.n)+' из '+AN.n+'…';$('anPF').style.width=Math.round(AN.p/AN.n*100)+'%';return}
+  var n=AN.n,P=evP(),W=300,Hh=76,i,d,dots='',two=Gm.mode==='two',me=two?'w':(Gm.me||'w');
+  function X(i){return 4+i*(W-8)/n}function Y(cp){var v=Math.max(-600,Math.min(600,cp*(P==='w'?1:-1)));return Hh/2-v/600*(Hh/2-5)}
+  d='M'+X(0)+' '+Y(0);
+  for(i=0;i<n;i++){var r=AN.R[i];d+=' L'+X(i+1).toFixed(1)+' '+Y(r.ev).toFixed(1);if(r.k==='inac'||r.k==='mist'||r.k==='blun'||r.k==='brl')dots+='<circle class="'+r.k+'" cx="'+X(i+1).toFixed(1)+'" cy="'+Y(r.ev).toFixed(1)+'" r="3"/>'}
+  var h='<svg class="anch" id="anCh" viewBox="0 0 '+W+' '+Hh+'" role="img" aria-label="График оценки по ходам"><rect class="bgr" x="0" y="0" width="'+W+'" height="'+Hh+'" rx="8"/><path class="ar" d="'+d+' L'+X(n)+' '+Hh/2+' L'+X(0)+' '+Hh/2+'Z"/><path class="mid" d="M4 '+Hh/2+'H'+(W-4)+'"/><path class="ln" d="'+d+'"/>'+dots+'<path class="cu" d="M'+X(AN.i).toFixed(1)+' 3V'+(Hh-3)+'"/></svg>';
+  h+='<p class="legend" style="margin:6px 0 12px">График: выше середины перевес '+(two?'у белых':'у вас')+'. Нажмите на график, чтобы перейти к ходу.</p>';
+  var cnt={w:{},b:{}},acc={w:0,b:0},num={w:0,b:0};
+  AN.R.forEach(function(r,i){var c=i%2?'b':'w';cnt[c][r.k]=(cnt[c][r.k]||0)+1;acc[c]+=Math.max(0,100-r.d/5);num[c]++});
+  var o=other(me),nm=function(c){return two?cname(c,1):c===me?'Вы':Gm.mode==='net'?'Соперник':'Бот'},pa=function(c){return num[c]?Math.round(acc[c]/num[c])+'%':'—'};
+  h+='<div class="ant"><b>'+nm(me)+'</b><span class="mu">игрок</span><b>'+nm(o)+'</b><b>'+pa(me)+'</b><span class="mu">точность</span><b>'+pa(o)+'</b>';
+  CAT.forEach(function(c){h+='<span class="n">'+(cnt[me][c[0]]||0)+'</span><span class="ct"><em class="bg '+c[0]+'">'+c[1]+'</em>'+c[2]+'</span><span class="n">'+(cnt[o][c[0]]||0)+'</span>'});
+  $('anBody').innerHTML=h+'</div>'}
+$('bAn').addEventListener('click',anStart);
+$('anX').addEventListener('click',function(){AN=null;renderPlay()});
+$('anNav').addEventListener('click',function(e){var b=e.target.closest('button');if(!b||!AN)return;var k=b.getAttribute('data-a');anGo(k==='s'?0:k==='e'?AN.n:AN.i+(k==='p'?-1:1))});
+$('anBody').addEventListener('click',function(e){var s=e.target.closest('#anCh');if(!s||!AN)return;var r=s.getBoundingClientRect();anGo(Math.round(((e.clientX-r.left)/r.width*300-4)/(292/AN.n)))});
+$('mv').addEventListener('click',function(e){var c=e.target.closest('[data-ply]');if(!c||!Gm.over)return;var i=+c.getAttribute('data-ply')+1;
+  if(AN&&AN.done)anGo(i);else if(!AN&&Gm.an){anStart();anGo(i)}});
+document.addEventListener('keydown',function(e){if(!AN||!AN.done||$('v-play').hidden)return;if(e.key==='ArrowLeft')anGo(AN.i-1);else if(e.key==='ArrowRight')anGo(AN.i+1)});
 function tryMove(f,t){var c=legal(Gm.S).filter(function(m){return m.f===f&&m.t===t});if(!c.length)return false;
   if(c[0].p){promo=c;var h='';['q','r','b','n'].forEach(function(x){h+='<button data-p="'+x+'" aria-label="'+{q:'Ферзь',r:'Ладья',b:'Слон',n:'Конь'}[x]+'">'+pc(x,Gm.S.t)+'</button>'});$('promoB').innerHTML=h;renderPlay()}
   else userMove(c[0]);return true}
 dragify($('bd'),function(i){return canPlay()&&colOf(Gm.S.b[i])===mySide()},
   function(i){var was=sel===i;sel=i;mark($('bd'),i,targets(legal(Gm.S),i));return was},
-  function(f,t){if(!tryMove(f,t)){sel=-1;renderPlay()}},
+  function(f,t){dragged=true;if(!tryMove(f,t)){dragged=false;sel=-1;renderPlay()}},
   function(i,was,mv){if(was&&!mv)sel=-1;renderPlay()},
   function(i){if(!canPlay())return;if(sel>=0&&tryMove(sel,i))return;sel=-1;renderPlay()});
 $('promoB').addEventListener('click',function(e){var b=e.target.closest('[data-p]');if(!b||!promo)return;var x=b.getAttribute('data-p'),m=promo.filter(function(q){return q.p===x})[0];promo=null;if(m)userMove(m)});
@@ -372,7 +439,7 @@ function route(){var v=(location.hash||'').slice(1);if(VIEWS.indexOf(v)<0)v='hom
   [].forEach.call(document.querySelectorAll('nav.tabs a'),function(a){if(a.getAttribute('data-v')===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')})}
 window.addEventListener('hashchange',function(){if(!netFromHash())route()});
 function start(d){var g=(d&&d.game)||store.game;
-  if(g&&g.S&&g.S.b&&g.S.b.length===64&&g.UCI&&(g.mode==='bot'||g.mode==='two')&&BOT[g.lv]){Gm=g;H=[];
+  if(g&&g.S&&g.S.b&&g.S.b.length===64&&g.UCI&&(g.mode==='bot'||g.mode==='two')&&BOT[g.lv]){Gm=g;H=[];Gm.EV=Gm.EV||[];
     if(Gm.mode==='bot'&&!Gm.over&&Gm.S.t!==Gm.me){busy=true;renderPlay();setTimeout(engineStep,60)}else renderPlay()}
   else newG('bot','w',store.set.lv);
   modeUI();pzLoad(0);li=0;lst=parseFen(LS[0].f);lsRender();netFromHash();route()}
